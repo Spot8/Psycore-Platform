@@ -1,98 +1,119 @@
-# FloSync AI — SaaS starter
+# AegisFlo Defense — Cyber Operations Platform
 
-A deployable starting point for a multi-tenant AI business assistant. Includes a Next.js dashboard, Supabase email/password authentication, an authenticated server-side OpenAI Responses API endpoint, and an initial organization/lead/task schema with Row Level Security.
+A defensive cybersecurity operations starter for authorized enterprise environments.
+Includes a FastAPI backend, React/TypeScript frontend, PostgreSQL, Docker Compose,
+demo security events, asset inventory, vulnerability tracking, incident workflow,
+audit events, and a deterministic AI-analysis placeholder.
 
-## What works in this starter
-
-- Account creation and sign-in using Supabase Auth.
-- One private organization/workspace provisioned for each new user.
-- AI assistant chat through the OpenAI Responses API.
-- Server-side API key handling (the OpenAI key is never sent to the browser).
-- Initial multi-tenant tables for leads, tasks, and usage events, protected with RLS.
-
-## What is not implemented yet
-
-This is an MVP foundation, not a finished commercial SaaS. It does not yet include Stripe checkout/webhooks, a full CRM/task UI, n8n workflow execution, invitation/team management, usage enforcement, audit logs, data export/deletion flows, or production monitoring. Sidebar items marked “SOON” are placeholders. Do not sell it as having those capabilities until built and tested.
+## Important deployment boundary
+This repository is a development starter, not a government-authorized system and not
+a FedRAMP/FISMA/CMMC certification. Do not enter classified information, CUI, real
+credentials, production telemetry, or sensitive government data. Before any operational
+government use, complete the applicable authorization, security assessment, supply-chain
+review, identity integration, logging, encryption/key-management, backup, and incident
+response requirements. Use only systems and data you are authorized to administer.
 
 ## Requirements
+- Docker Desktop (or Docker Engine + Compose)
+- Git
+- Optional: Python 3.12 and Node 20 for development outside containers
 
-- Node.js 20.9+
-- An OpenAI API project and API key
-- A Supabase project
+## Quick start
+```bash
+cp .env.example .env
+# Change APP_SECRET before any shared deployment.
+docker compose up --build
+```
+Open:
+- Frontend: http://localhost:5173
+- API docs: http://localhost:8000/docs
+- Health: http://localhost:8000/health
 
-## Run locally
+The demo API is intentionally unauthenticated for local-only evaluation. It binds to
+localhost through Compose. Do not expose it to a network. Before deployment, implement
+the production security checklist below.
 
-1. Extract the ZIP and open a terminal in the project folder.
-2. Install dependencies:
+## Demo workflow
+1. Open the dashboard.
+2. Review seeded events and assets.
+3. Create an incident from an event.
+4. Change incident status and add an analyst note.
+5. Review audit entries.
 
-   ```bash
-   npm install
-   ```
-3. Copy `.env.example` to `.env.local` and fill in:
-   - `OPENAI_API_KEY` from the OpenAI Platform
-   - `OPENAI_MODEL` (default `gpt-5-mini`; choose a model enabled for your API project)
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase project publishable/anon key)
-4. In Supabase → SQL Editor, run `supabase/migrations/001_initial_schema.sql`.
-5. In Supabase Auth settings, configure your site URL and allowed redirect URLs for local development (`http://localhost:3000`) and your deployed domain.
-6. Start the app:
+## Repository structure
+```text
+backend/
+  app/
+    main.py
+    database.py
+    models.py
+    schemas.py
+    seed.py
+    services/analysis.py
+  requirements.txt
+frontend/
+  src/
+    App.tsx
+    main.tsx
+    styles.css
+  package.json
+  vite.config.ts
+docker-compose.yml
+.env.example
+```
 
-   ```bash
-   npm run dev
-   ```
+## API
+- `GET /health`
+- `GET /api/dashboard`
+- `GET /api/events`
+- `POST /api/events/{event_id}/analyze`
+- `GET /api/assets`
+- `GET /api/vulnerabilities`
+- `GET /api/incidents`
+- `POST /api/incidents`
+- `PATCH /api/incidents/{incident_id}`
+- `GET /api/audit`
 
-7. Open http://localhost:3000 and create an account. If email confirmation is enabled, confirm the email before signing in.
+## Local development without Docker
+Backend:
+```bash
+cd backend
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+source .venv/bin/activate
+pip install -r requirements.txt
+DATABASE_URL=sqlite:///./aegisflo.db uvicorn app.main:app --reload
+```
+Frontend:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+For local non-Docker development, the frontend expects the API at `http://localhost:8000`.
 
-## Deploy to Vercel
+## Production hardening gate — required before any shared or government deployment
+1. Replace demo mode with enterprise OIDC/SAML SSO and phishing-resistant MFA.
+2. Enforce server-side RBAC/ABAC on every endpoint; default deny.
+3. Put the API behind an approved reverse proxy/WAF; TLS 1.2+ (prefer TLS 1.3).
+4. Use managed PostgreSQL with encryption at rest, private networking, backups, and tested restore.
+5. Store secrets in an approved secrets manager; rotate keys and credentials.
+6. Add immutable centralized audit logging, time synchronization, retention, and alerting.
+7. Add tenant isolation, data classification labels, and CUI handling controls where applicable.
+8. Add dependency/container scanning, SBOM generation, signed builds, and CI security gates.
+9. Conduct threat modeling, penetration testing, code review, and independent assessment.
+10. Map controls to the agency/contract's actual requirements and obtain the required authorization
+    (for example, applicable FedRAMP authorization for cloud services and system-level ATO).
+11. Validate the exact CMMC/NIST contract obligations with the contracting organization.
+12. Disable demo seed data, sample credentials, public API docs, and development CORS settings.
 
-1. Push this project to a private GitHub repository.
-2. In Vercel, import the repository.
-3. Add the four environment variables from `.env.example` in Project Settings → Environment Variables. Do not add secrets to `NEXT_PUBLIC_` variables.
-4. Deploy.
-5. Add your production domain to Supabase Auth's Site URL and Redirect URLs.
-6. Test signup, sign-in, sign-out, and AI chat on the production domain.
+## AI integration
+The current analyzer is deterministic and local: it produces explainable triage suggestions from
+event fields and does not send telemetry to an external service. If adding a hosted model later,
+obtain authorization for the data flow, redact sensitive data, define retention, validate outputs,
+and require human approval for actions. AI recommendations never execute containment actions.
 
-## Security checklist before paid launch
-
-- Keep `OPENAI_API_KEY` server-side only. Never prefix it with `NEXT_PUBLIC_`.
-- Keep Supabase service-role/secret keys out of the frontend. This starter does not need one.
-- Review RLS policies with separate test accounts and verify one workspace cannot access another.
-- Add rate limiting, per-plan usage limits, request-size limits, abuse monitoring, and cost alerts.
-- Add billing only after Stripe webhook signature verification and subscription state enforcement are implemented server-side.
-- Add audit logs and explicit confirmation for external side effects (sending messages, refunds, deleting records, payments).
-- Publish Terms, Privacy Policy, cancellation/refund terms, and a clear AI limitations notice.
-- Do not connect sensitive health, legal, financial, or employment decision workflows without domain-specific security and compliance review.
-
-## Suggested next milestones
-
-1. CRM and task management screens using the existing RLS-protected tables.
-2. Organization settings, team invites, and role-based permissions.
-3. Stripe subscriptions + signed webhooks + server-enforced plan entitlements.
-4. n8n integration with signed webhooks, allowlisted workflows, retries, and execution logs.
-5. Approved AI tools for creating tasks/leads; require human approval before external actions.
-6. Usage metering, analytics, observability, backups, and production security review.
-
-## Phase 2: CRM and task management
-
-This update adds:
-- `/customers`: create, list, update pipeline status, and delete customer/lead records.
-- `/tasks`: create, list, update task status, and delete tasks.
-- Authenticated API routes for both modules. Every query is scoped to the signed-in user's workspace and also protected by the original Supabase RLS policies.
-- A workflow registry, workflow-run history, and audit-log schema in `supabase/migrations/002_operations_and_automation.sql`. These tables are groundwork only; this release does not execute external automations.
-
-### Apply Phase 2
-
-1. Commit or back up your current project.
-2. In Supabase SQL Editor, run `002_operations_and_automation.sql` after migration 001.
-3. Replace/add the files from this update in your project.
-4. Run `npm install`, then `npm run dev`.
-5. Sign in and open `/customers` and `/tasks` from the dashboard.
-6. Test with two separate user accounts. Confirm that each account sees only its own workspace data.
-
-### Claude AI instructions
-
-Upload the updated project ZIP to Claude and ask it to review the repository before editing. Use the prompt in `CLAUDE_NEXT_STEPS.md`. Do not paste secret keys into Claude or commit `.env.local`.
-
-### Remaining production milestones
-
-This Phase 2 update does not yet include Stripe billing, team invitations, workflow execution, external integrations, usage enforcement, email notifications, or production-grade rate limiting. Build and test those in later phases before accepting paying customers. The workflow tables are not an execution engine.
+## Scope
+This starter is for defensive monitoring, triage, documentation, and compliance workflows.
+It does not scan arbitrary public targets, exploit vulnerabilities, deploy payloads, or disrupt
+communications.
